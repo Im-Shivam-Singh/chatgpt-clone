@@ -62,9 +62,9 @@ if [ -d "frontend" ]; then
     (
         cd frontend
 
-        if [ -f ".env.example" ] && [ ! -f ".env.local" ]; then
-            cp .env.example .env.local
-            echo "   ✅ Created .env.local"
+        if [ -f ".env.example" ]; then
+            cp .env.example .env
+            echo "   ✅ Created .env"
         fi
 
         npm install
