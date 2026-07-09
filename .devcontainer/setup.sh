@@ -2,46 +2,122 @@
 
 set -e
 
-echo "======================================="
-echo "ChatGPT Clone"
-echo "======================================="
-
 echo ""
-echo "Python:"
-python --version
-
+echo "========================================"
+echo "🚀 Enterprise AI Platform Setup"
+echo "========================================"
 echo ""
-echo "UV:"
-uv --version
 
+#######################################################
+# Verify tools
+#######################################################
+
+echo "Checking required tools..."
+
+command -v python >/dev/null || { echo "❌ Python not found"; exit 1; }
+command -v uv >/dev/null || { echo "❌ uv not found"; exit 1; }
+command -v node >/dev/null || { echo "❌ Node.js not found"; exit 1; }
+command -v npm >/dev/null || { echo "❌ npm not found"; exit 1; }
+
+echo "✅ Required tools found."
 echo ""
-echo "Terraform:"
-terraform version
 
-echo ""
-echo "Azure CLI:"
-az version
+#######################################################
+# Python Services
+#######################################################
 
-echo ""
-echo "Docker:"
-docker --version
+echo "📦 Installing Python dependencies..."
 
-echo ""
-echo "Installing Python dependencies..."
-
-#!/usr/bin/env bash
-set -e
-
-for service in gateway chat-service ai-agent
+for service in gateway chat-service ai-service
 do
-    if [ -f "$service/pyproject.toml" ]; then
-        echo "Setting up $service..."
+    if [ -d "$service" ]; then
+
+        echo ""
+        echo "→ Setting up $service"
+
         (
             cd "$service"
-            uv sync
+
+            if [ -f ".env.example" ] && [ ! -f ".env" ]; then
+                cp .env.example .env
+                echo "   ✅ Created .env"
+            fi
+
+            if [ -f "pyproject.toml" ]; then
+                uv sync
+            fi
         )
     fi
 done
 
+#######################################################
+# Frontend
+#######################################################
+
+if [ -d "frontend" ]; then
+
+    echo ""
+    echo "📦 Setting up Frontend"
+
+    (
+        cd frontend
+
+        if [ -f ".env.example" ] && [ ! -f ".env.local" ]; then
+            cp .env.example .env.local
+            echo "   ✅ Created .env.local"
+        fi
+
+        npm install
+
+        # Initialize shadcn only if not already initialized
+        if [ ! -f "components.json" ]; then
+
+            echo ""
+            echo "Initializing shadcn/ui..."
+
+            npx shadcn@latest init --yes || true
+
+        fi
+    )
+fi
+
+#######################################################
+# Finished
+#######################################################
+
 echo ""
-echo "Setup Complete!"
+echo "========================================"
+echo "✅ Setup Complete!"
+echo "========================================"
+echo ""
+
+echo "Installed Versions"
+echo "------------------"
+
+python --version
+echo ""
+
+uv --version
+echo ""
+
+node --version
+echo ""
+
+npm --version
+echo ""
+
+terraform version | head -1
+echo ""
+
+az version | head -5 || true
+
+echo ""
+echo "🎉 Repository is ready!"
+echo ""
+echo "Run the services using:"
+echo ""
+echo "Gateway      : uv run uvicorn app.main:app --reload --port 8000"
+echo "Chat Service : uv run uvicorn app.main:app --reload --port 8001"
+echo "AI Service   : uv run uvicorn app.main:app --reload --port 8002"
+echo "Frontend     : npm run dev"
+echo ""
