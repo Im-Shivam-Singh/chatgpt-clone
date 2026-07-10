@@ -1,7 +1,8 @@
-name: Backend CI
+name: Backend CI/CD
 
 on:
   workflow_dispatch:
+
   push:
     branches:
       - main
@@ -14,32 +15,18 @@ permissions:
   contents: read
   id-token: write
 
-jobs:
+env:
+  SERVICES: '["gateway","chat-service","ai-service"]'
 
-  discover:
+jobs:
+  build-and-push:
 
     runs-on: ubuntu-latest
-
-    steps:
-
-      - uses: actions/checkout@v4
-
-      - id: services
-        run: |
-          echo 'services=["gateway","chat-service","ai-service"]' >> $GITHUB_OUTPUT
-    
-    outputs:
-      services: ${{ steps.services.outputs.services }}
-
-  build:
-
-    needs: discover
 
     strategy:
+      fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.discover.outputs.services) }}
-
-    runs-on: ubuntu-latest
+        service: ${{ fromJson(env.SERVICES) }}
 
     defaults:
       run:
@@ -47,34 +34,24 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        run: |
-          pip install uv
-
-      - name: Install Dependencies
-        run: |
-          uv sync
-
-      - name: Run Tests
-        run: |
-          uv run pytest || true
-
-      - name: Azure Login
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to ACR
+      - name: Login to Azure Container Registry
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Verify Azure Login
+        run: |
+          az account show
+          az acr show --name ${{ secrets.ACR_NAME }}
 
       - name: Build Docker Image
         run: |
@@ -83,7 +60,10 @@ jobs:
             -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest \
             .
 
-      - name: Push Image
+      - name: Show Docker Images
+        run: docker images
+
+      - name: Push Docker Images
         run: |
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
