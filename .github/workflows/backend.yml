@@ -44,15 +44,31 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to Azure Container Registry
-        run: |
-          az acr login --name ${{ secrets.ACR_NAME }}
-
       - name: Verify Azure Login
         run: |
           az account show
           az acr show --name ${{ secrets.ACR_NAME }}
           az acr repository list --name ${{ secrets.ACR_NAME }} || true
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+        
+      - name: Verify registry
+        run: |
+          echo "Registry from Azure:"
+          az acr show \
+            --name ${{ secrets.ACR_NAME }} \
+            --query loginServer \
+            -o tsv
+
+          echo
+          echo "Docker auths:"
+          cat ~/.docker/config.json
+
+          echo
+          echo "Docker images:"
+          docker images
 
       - name: Build Docker Image
         run: |

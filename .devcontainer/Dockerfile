@@ -13,8 +13,6 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     ca-certificates \
-    apt-transport-https \
-    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------

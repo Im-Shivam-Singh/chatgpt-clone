@@ -4,11 +4,6 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
-
-    "features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-    },
-
     "customizations": {
         "vscode": {
             "extensions": [
