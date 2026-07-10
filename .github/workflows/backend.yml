@@ -15,9 +15,6 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  SERVICES: '["gateway","chat-service","ai-service"]'
-
 jobs:
   build-and-push:
 
@@ -26,7 +23,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJson(env.SERVICES) }}
+        service:
+          - gateway
+          - chat-service
+          - ai-service
 
     defaults:
       run:
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Azure Login (OIDC)
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -52,6 +52,7 @@ jobs:
         run: |
           az account show
           az acr show --name ${{ secrets.ACR_NAME }}
+          az acr repository list --name ${{ secrets.ACR_NAME }} || true
 
       - name: Build Docker Image
         run: |
@@ -61,7 +62,8 @@ jobs:
             .
 
       - name: Show Docker Images
-        run: docker images
+        run: |
+          docker images
 
       - name: Push Docker Images
         run: |
