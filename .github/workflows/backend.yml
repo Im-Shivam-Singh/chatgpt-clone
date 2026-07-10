@@ -44,44 +44,66 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify Azure Login
+      - name: Verify Azure Identity
         run: |
+          echo "========== Azure Account =========="
           az account show
-          az acr show --name ${{ secrets.ACR_NAME }}
-          az acr repository list --name ${{ secrets.ACR_NAME }} || true
+
+          echo
+          echo "========== Signed In User =========="
+          az account show --query user
+
+          echo
+          echo "========== Registry =========="
+          az acr show \
+            --name ${{ secrets.ACR_NAME }} \
+            --query "{name:name,loginServer:loginServer,id:id}" \
+            -o json
 
       - name: Login to Azure Container Registry
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
-        
-      - name: Verify registry
-        run: |
-          echo "Registry from Azure:"
-          az acr show \
-            --name ${{ secrets.ACR_NAME }} \
-            --query loginServer \
-            -o tsv
 
-          echo
-          echo "Docker auths:"
+      - name: Verify Docker Login
+        run: |
+          echo "========== Docker Config =========="
           cat ~/.docker/config.json
 
           echo
-          echo "Docker images:"
-          docker images
+          echo "========== Docker Info =========="
+          docker info
 
       - name: Build Docker Image
+        env:
+          IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
+          IMAGE_LATEST: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
         run: |
+          echo "Building:"
+          echo "$IMAGE"
+          echo "$IMAGE_LATEST"
+
           docker build \
-            -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }} \
-            -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest \
+            -t "$IMAGE" \
+            -t "$IMAGE_LATEST" \
             .
 
       - name: Show Docker Images
+        run: docker images
+
+      - name: Verify Image Exists
+        env:
+          IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
         run: |
-          docker images
+          docker image inspect "$IMAGE"
 
       - name: Push Docker Images
+        env:
+          IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
+          IMAGE_LATEST: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
         run: |
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
+          echo "Pushing:"
+          echo "$IMAGE"
+          echo "$IMAGE_LATEST"
+
+          docker push "$IMAGE"
+          docker push "$IMAGE_LATEST"
