@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   build-and-push:
+
     runs-on: ubuntu-latest
 
     strategy:
@@ -27,29 +28,16 @@ jobs:
           - chat-service
           - ai-service
 
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for Changes
-        id: changes
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" | grep -q "^${{ matrix.service }}/"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Azure Login
-        if: steps.changes.outputs.changed == 'true'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -57,55 +45,43 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Verify Azure Login
-        if: steps.changes.outputs.changed == 'true'
         run: |
           az account show
-          az acr show \
-            --name ${{ secrets.ACR_NAME }} \
-            --query "{name:name,loginServer:loginServer,id:id}"
+          az acr show --name ${{ secrets.ACR_NAME }}
+          az acr repository list --name ${{ secrets.ACR_NAME }} || true
 
       - name: Login to Azure Container Registry
-        if: steps.changes.outputs.changed == 'true'
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
-
-      - name: Set up Docker Buildx
-        if: steps.changes.outputs.changed == 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        if: steps.changes.outputs.changed == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
-          push: false
-          load: true
-          tags: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-
-      - name: Verify Docker Login
-        if: steps.changes.outputs.changed == 'true'
+        
+      - name: Verify registry
         run: |
-          echo "Docker config:"
+          echo "Registry from Azure:"
+          az acr show \
+            --name ${{ secrets.ACR_NAME }} \
+            --query loginServer \
+            -o tsv
+
+          echo
+          echo "Docker auths:"
           cat ~/.docker/config.json
 
           echo
-          echo "Images:"
+          echo "Docker images:"
           docker images
 
-      - name: Push Images
-        if: steps.changes.outputs.changed == 'true'
-        env:
-          IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
-          IMAGE_LATEST: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
+      - name: Build Docker Image
         run: |
-          echo "Pushing:"
-          echo "$IMAGE"
-          echo "$IMAGE_LATEST"
+          docker build \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest \
+            .
 
-          docker push "$IMAGE"
-          docker push "$IMAGE_LATEST"
+      - name: Show Docker Images
+        run: |
+          docker images
+
+      - name: Push Docker Images
+        run: |
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
