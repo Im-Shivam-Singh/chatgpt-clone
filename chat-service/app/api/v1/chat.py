@@ -1,22 +1,53 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 
-from app.api.schemas import ChatRequest, ChatResponse
+from app.services.ai_service import AIService
+from app.services.azure_blob import AzureBlobService
 
 router = APIRouter(
     prefix="/chat",
     tags=["Chat"],
 )
 
+azure_service = AzureBlobService()
+ai_service = AIService()
 
-@router.post("", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
-    print(request)
 
-    return ChatResponse(
-        reply="Hello from Internal Chat Service"
+@router.post("")
+async def chat(
+    question: str = Form(...),
+    model: str = Form("gpt-oss:20b"),
+    top_k: int = Form(5),
+    temperature: float = Form(0.2),
+    top_p: float = Form(0.9),
+    max_tokens: int = Form(512),
+    files: list[UploadFile] = File(default=[]),
+):
+    print("CHAT SERVICE REQUEST:", question)
+    print("FILES:", len(files))
+
+    uploaded_files = []
+
+    # Upload every file to Azure
+    for file in files:
+
+        uploaded_file = await azure_service.upload_file(file)
+
+        uploaded_files.append(uploaded_file)
+
+        print(
+            "UPLOADED:",
+            uploaded_file,
+        )
+
+    # Send all file metadata to AI Service
+    response = await ai_service.chat(
+        question=question,
+        model=model,
+        top_k=top_k,
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+        files=uploaded_files,
     )
 
-
-@router.get("/{id}")
-async def get_chat(id: str):
-    return {"message": f"Chat Fetched {id}"}
+    return response

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 
 class BaseProvider(ABC):
@@ -8,7 +7,7 @@ class BaseProvider(ABC):
     """
 
     @abstractmethod
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """
         Generate embeddings for the given text.
 
@@ -18,7 +17,7 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """
         Generate embeddings for a batch of texts.
 

@@ -1,7 +1,6 @@
+from app.embeddings.service import EmbeddingService
 from app.vectordb.service import VectorStoreService
-from app.vectordb.models import RetrievedChunk
 
-from app.embeddings.service import EmbeddingService 
 
 class RetrieverService:
     def __init__(self):
@@ -9,9 +8,13 @@ class RetrieverService:
         self.vector_store_service = VectorStoreService()
 
     def retrieve(
-            self, 
-            query: str, 
-            k: int = 5
-    ) -> list[RetrievedChunk]:
-        embedding = self.embedding_service.embed(query)
-        return self.vector_store_service.search(embedding, k)
+        self,
+        query: str,
+        embedding: list[float],
+        top_k: int = 5,
+    ):
+        return self.vector_store_service.search(
+            query,
+            embedding,
+            top_k,
+        )

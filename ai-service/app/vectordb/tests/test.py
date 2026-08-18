@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 
 def test_upload():
@@ -23,7 +23,7 @@ def test_upload():
         embedding=embedding,
     )
 
-    # vector_store.upsert([document])
+    vector_store.upsert([document])
 
     print("Upload completed.", document.to_dict())
 
@@ -33,17 +33,23 @@ def test_search():
     embedding_service = EmbeddingService()
     vector_store = VectorStoreService()
 
-    text = "ChatGPT is an AI assistant built by OpenAI."
+    embedding = embedding_service.embed("What is ChatGPT?")
 
-    embedding = embedding_service.embed(text)
+    results = vector_store.search(
+        embedding=embedding,
+        k=5,
+    )
 
-    results = vector_store.search(embedding, k=5)
+    for result in results:
+        print(result)
 
-    print("Search completed.", results)
+def test_create_indexes():
+    from app.vectordb.service import VectorStoreService
+    VectorStoreService().create_index(recreate=True)
 
 
 if __name__ == "__main__":
     PROJECT_ROOT = Path(__file__).resolve().parents[3]
     sys.path.insert(0, str(PROJECT_ROOT))
-    test_search()
+    test_create_indexes()
     

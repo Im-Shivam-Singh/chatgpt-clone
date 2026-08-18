@@ -3,7 +3,6 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -32,6 +31,15 @@ class Settings(BaseSettings):
     azure_search_key: str
     azure_search_index: str = "documents"
     embedding_dimension: int = 384
+    
+    llm_provider: str = "ollama"
+    llm_model: str = "qwen3:4b"
+    llm_temperature: float = 0.2
+    llm_top_p: float = 1.0
+    
+    ollama_base_url: str
+    ollama_api_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:

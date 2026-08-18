@@ -1,12 +1,10 @@
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.retriever.service import RetrieverService
-
 
 retriever = RetrieverService()
 

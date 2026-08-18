@@ -1,30 +1,33 @@
-from typing import List
 from sentence_transformers import SentenceTransformer
 
-
 from app.embeddings.providers.base import BaseProvider
+from app.settings import get_settings
 
 
 class HuggingFaceProvider(BaseProvider):
-    """
-    HuggingFace embedding provider.
-    """
+
+    _models: dict[str, SentenceTransformer] = {}
 
     def __init__(self, model_name: str):
-        print(f"Loading model: {model_name}")
-        self.model = SentenceTransformer(model_name)
+        self.settings = get_settings()
+        if model_name not in self._models:
+            print(f"Loading model: {model_name}")
+            self._models[model_name] = SentenceTransformer(model_name)
 
-    def embed(self, text: str) -> List[float]:
-        vector = self.model.encode(
+        self.model = self._models[model_name]
+
+    def embed(self, text: str) -> list[float]:
+        return self.model.encode(
             text,
-            normalize_embeddings=True
-        )
-        return vector.tolist()
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+        ).tolist()
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        vectors = self.model.encode(
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return self.model.encode(
             texts,
-            batch_size=32,
-            normalize_embeddings=True
-        )
-        return vectors.tolist()
+            batch_size=self.settings.embedding_batch_size,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=True,
+        ).tolist()

@@ -1,5 +1,6 @@
-from app.settings import get_settings
 from app.document.chunkers.fixed import FixedChunker
+from app.settings import get_settings
+
 
 class ChunkerFactory:
 

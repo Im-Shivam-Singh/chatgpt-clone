@@ -116,3 +116,8 @@ leadsquared_kcloud/leadsquared/env_setting.py
 magento_plugin/magento_plugin/env_setting.py
 .idea
 localdatabase
+
+
+ai-service/rag_logs
+*.pdf
+gitignore

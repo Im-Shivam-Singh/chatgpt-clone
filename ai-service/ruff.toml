@@ -1,0 +1,18 @@
+line-length = 88
+target-version = "py312"
+
+[lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+]
+
+ignore = [
+    "E501",
+]
+
+fixable = ["ALL"]

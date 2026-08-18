@@ -2,20 +2,20 @@ from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
+    HnswAlgorithmConfiguration,
+    SearchableField,
+    SearchField,
+    SearchFieldDataType,
     SearchIndex,
     SimpleField,
-    SearchField,
-    SearchableField,
-    SearchFieldDataType,
     VectorSearch,
-    HnswAlgorithmConfiguration,
     VectorSearchProfile,
 )
 from azure.search.documents.models import VectorizedQuery
 
 from app.settings import get_settings
+from app.vectordb.models import RetrievedChunk, VectorDocument
 from app.vectordb.providers.base import BaseVectorStore
-from app.vectordb.models import VectorDocument, RetrievedChunk
 
 
 class AzureAISearchVectorStore(BaseVectorStore):
@@ -45,7 +45,7 @@ class AzureAISearchVectorStore(BaseVectorStore):
             credential=credential,
         )
 
-    def create_index(self):
+    def create_index(self, recreate: bool = False):
 
         indexes = {
             index.name
@@ -53,8 +53,13 @@ class AzureAISearchVectorStore(BaseVectorStore):
         }
 
         if self.index_name in indexes:
-            print(f"Index '{self.index_name}' already exists.")
-            return
+
+            if recreate:
+                print(f"Deleting '{self.index_name}'...")
+                self.index_client.delete_index(self.index_name)
+            else:
+                print(f"Index '{self.index_name}' already exists.")
+                return
 
         fields = [
 
@@ -62,6 +67,12 @@ class AzureAISearchVectorStore(BaseVectorStore):
                 name="id",
                 type=SearchFieldDataType.String,
                 key=True,
+            ),
+
+            SimpleField(
+                name="user_id",
+                type=SearchFieldDataType.String,
+                filterable=True,
             ),
 
             SimpleField(
@@ -133,16 +144,17 @@ class AzureAISearchVectorStore(BaseVectorStore):
         for item in result:
             print(item)
 
-    def search(self, embedding, k) -> list[RetrievedChunk]:
+    def search(self, query: str, embedding, k) -> list[RetrievedChunk]:
         vector_query = VectorizedQuery(
             vector=embedding,
             k_nearest_neighbors=k,
             fields="embedding",
         )
         results: list = self.search_client.search(
-            search_text=None,
+            search_text=query,
             vector_queries=[vector_query],
-            select=["id", "document_id", "chunk_index", "page", "content"],
+            top=k,
+            select=["id", "user_id", "document_id", "chunk_index", "page", "content"],
         )
         search_results: list[RetrievedChunk] = []
         for item in results:

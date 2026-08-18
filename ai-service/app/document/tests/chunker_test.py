@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from app.document.factory import DocumentFactory
 from app.document.chunkers.factory import ChunkerFactory
+from app.document.factory import DocumentFactory
 from app.settings import get_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
