@@ -14,6 +14,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://ashy-smoke-064d11500.7.azurestaticapps.net",
         "https://zany-memory-956jrjjjj772jvw-3000.app.github.dev",
     ],
     allow_credentials=True,
