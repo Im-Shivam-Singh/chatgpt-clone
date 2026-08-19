@@ -10,8 +10,7 @@ type Message = {
   content: string;
 };
 
-const API_URL =
-  "https://zany-memory-956jrjjjj772jvw-8001.app.github.dev/api/v1/chat";
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat`;
 
 export default function Home() {
   const [question, setQuestion] = useState("");
